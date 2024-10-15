@@ -7,7 +7,7 @@ export default function Chat() {
   const [chatToDelete, setChatToDelete] = useState(null); // State to track the chat to be deleted
   const [message, setMessage] = useState(""); // For handling chat input
   const [messages, setMessages] = useState([]); // For displaying sent messages in the chat
-
+  const [isSending, setIsSending] = useState(false);
   // Chat history
   const [chatHistory, setChatHistory] = useState([
     {
@@ -43,10 +43,30 @@ export default function Chat() {
   ]);
 
   // Send message functionality
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (message.trim()) {
-      setMessages([...messages, { message, date: "Now" }]);
+      const userMessage = { message, date: "Now" };
+      setMessages([...messages, userMessage]);
       setMessage("");
+      setIsSending(true);
+      console.log("in here"); // Disable button while waiting for response
+
+      try {
+        const response = await fetch("http://localhost:8000/ask-ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: userMessage.message }),
+        });
+        const data = await response.json();
+        setMessages((prev) => [
+          ...prev,
+          { message: data.reply, date: "Now", fromAI: true },
+        ]);
+      } catch (error) {
+        console.error("Error fetching AI response:", error);
+      } finally {
+        setIsSending(false); // Re-enable button after response
+      }
     }
   };
   const handleKeyDown = (e) => {
@@ -153,10 +173,12 @@ export default function Chat() {
               onKeyDown={handleKeyDown}
               placeholder="Type your message"
               className="flex-grow border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
+              disabled={isSending}
             />
             <button
               className="bg-blue-500 text-white rounded-full p-3 hover:bg-blue-600"
               onClick={handleSendMessage}
+              disabled={isSending}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

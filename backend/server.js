@@ -1,16 +1,28 @@
 const express = require("express");
-const app = express();
-const port = 8000;
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Middleware to parse JSON request bodies
+const cors = require("cors"); // Import CORS
+
+const app = express();
+app.use(cors());
+const port = 8000;
+const genAI = new GoogleGenerativeAI("AIzaSyD--nlGPkYJwpN0lwz0Nz6Tawj3X1pxwUk");
+
 app.use(express.json());
 
-// Basic route
-app.get("/", (req, res) => {
-  res.send("Hello, Node.js Backend!");
+app.post("/ask-ai", async (req, res) => {
+  const { message } = req.body;
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent(message);
+
+    res.json({ reply: result.response.text() });
+  } catch (error) {
+    res.status(500).json({ error: "AI query failed" });
+  }
 });
 
-// Start the server
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 });
